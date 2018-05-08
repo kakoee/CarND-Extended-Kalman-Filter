@@ -137,7 +137,7 @@ void filter(VectorXd &x, MatrixXd &P) {
 		x = F * x + u;
 		
         // new_error = A. old_error . A.Tranpose ( A is F here)
-        P = F * P * F.transpose();
+        P = F * P * F.transpose() + Q;
 
 
 		std::cout << "x=" << std::endl <<  x << std::endl;
