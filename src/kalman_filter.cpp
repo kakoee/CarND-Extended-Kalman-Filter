@@ -36,6 +36,7 @@ void KalmanFilter::Update(const VectorXd &z) {
     * update the state by using Kalman Filter equations
   */
   // division by S. P is Error estimated, and R is the meas error.
+
   MatrixXd P1 = P_ * H_.transpose();
   MatrixXd S = H_ * P_ * H_.transpose() + R_;
   MatrixXd KG = P1 * S_.inverse();
@@ -43,6 +44,7 @@ void KalmanFilter::Update(const VectorXd &z) {
   // new state
   // then calculate new estimate
   // EST(new) = EST(old)  + KG(meas - EST(old)
+  
   MatrixXd KG_term = z - ( H_ * x_); //  this is meas - EST(OLD); H for matrix conversion
   x_ = x_ + (KG * KG_term);
   long x_size = x_.size();
@@ -56,4 +58,31 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+  // The difference from Update is we need to change H_ * x_ for radar . we need to convert the prediction which is in x,y (cartesian) domain to measurement which is in rho, theta, ro (polar) domain. the reverse of when getting meas from radar
+  VectorXd h_of_x(3);
+  float x = x_[0];
+  float y = x_[1];
+  float vx = x_[2];
+  float vy = x_[3];
+  float p = sqrt(x*x + y*y); // rho
+  float q = atan2(y/x); //theta
+  float pb = (x*vx + y * vy)/p; // rho_dot
+  h_of_x << p,q,pb;
+
+  
+  
+  MatrixXd P1 = P_ * H_.transpose();
+  MatrixXd S = H_ * P_ * H_.transpose() + R_;
+  MatrixXd KG = P1 * S_.inverse();
+  
+  // new state
+  // then calculate new estimate
+  // EST(new) = EST(old)  + KG(meas - EST(old)
+  
+  MatrixXd KG_term = z - ( h_of_x); //  this is meas - EST(OLD)/z_pred; H for matrix conversion
+  x_ = x_ + (KG * KG_term);
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - KG*H_)  * P_; // Error(new) = (1-KG) Error(old). I is used instead of 1 for matrix
+  
 }
