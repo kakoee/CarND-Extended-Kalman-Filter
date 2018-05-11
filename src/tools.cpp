@@ -16,7 +16,8 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
     * Calculate the RMSE here.
   */
 
-	VectorXd rmse;
+	VectorXd rmse(4);
+	rmse<<0,0,0,0;
     
 
 	if(estimations.size()==0 || (estimations.size()!=ground_truth.size())){
@@ -24,20 +25,14 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 		return rmse;
     }
 
-    bool first=true;
 
-	for(int i=0; i < estimations.size(); ++i){
+	for(unsigned int i=0; i < estimations.size(); ++i){
         VectorXd item_ext = estimations[i];
         VectorXd item_real = ground_truth[i];
-        float resitem=0;
         for(int j=0;j<item_ext.size();j++){
             float sub = item_ext(j) - item_real(j);            
-            if(first)
-                rmse(j) = sub*sub;
-            else
-                rmse(j) = rmse(j) + sub*sub;
+            rmse(j) = rmse(j) + sub*sub;
         }
-        first=false;
 	}
 
 

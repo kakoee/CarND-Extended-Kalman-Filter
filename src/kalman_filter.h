@@ -23,6 +23,11 @@ public:
   // measurement covariance matrix
   Eigen::MatrixXd R_;
 
+  Eigen::MatrixXd Htranspose_;
+
+  bool first;
+  float last_p;
+
   /**
    * Constructor
    */

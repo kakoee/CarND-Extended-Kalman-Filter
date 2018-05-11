@@ -6,7 +6,7 @@ using Eigen::VectorXd;
 // Please note that the Eigen library does not initialize 
 // VectorXd or MatrixXd objects with zeros upon creation.
 
-KalmanFilter::KalmanFilter() {}
+KalmanFilter::KalmanFilter() {first=true;}
 
 KalmanFilter::~KalmanFilter() {}
 
@@ -37,9 +37,15 @@ void KalmanFilter::Update(const VectorXd &z) {
   */
   // division by S. P is Error estimated, and R is the meas error.
 
-  MatrixXd P1 = P_ * H_.transpose();
-  MatrixXd S = H_ * P_ * H_.transpose() + R_;
-  MatrixXd KG = P1 * S_.inverse();
+  //calulcate H.tranpose only once
+  if(first)
+    Htranspose_ = H_.transpose();
+  
+  first=false;
+
+  MatrixXd P1 = P_ * Htranspose_;
+  MatrixXd S = H_ * P_ * Htranspose_ + R_;
+  MatrixXd KG = P1 * S.inverse();
   
   // new state
   // then calculate new estimate
@@ -65,24 +71,41 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   float vx = x_[2];
   float vy = x_[3];
   float p = sqrt(x*x + y*y); // rho
-  float q = atan2(y/x); //theta
-  float pb = (x*vx + y * vy)/p; // rho_dot
+  float q = atan2(y,x); //theta
+
+
+  float pb;
+  if(p<0.001)// divide by 0
+    pb = (x*vx + y * vy)/last_p;
+  else{
+    pb = (x*vx + y * vy)/p; // rho_dot
+    last_p=p;
+  }
+
   h_of_x << p,q,pb;
 
   
-  
   MatrixXd P1 = P_ * H_.transpose();
   MatrixXd S = H_ * P_ * H_.transpose() + R_;
-  MatrixXd KG = P1 * S_.inverse();
+  MatrixXd KG = P1 * S.inverse();
   
   // new state
   // then calculate new estimate
   // EST(new) = EST(old)  + KG(meas - EST(old)
   
   MatrixXd KG_term = z - ( h_of_x); //  this is meas - EST(OLD)/z_pred; H for matrix conversion
+
+  //normalizing theta of KG_term
+  while(KG_term(1)>M_PI)
+    KG_term(1)-= 2*M_PI;
+  while(KG_term(1)<-M_PI)
+    KG_term(1)+= 2*M_PI;
+
+
   x_ = x_ + (KG * KG_term);
   long x_size = x_.size();
   MatrixXd I = MatrixXd::Identity(x_size, x_size);
   P_ = (I - KG*H_)  * P_; // Error(new) = (1-KG) Error(old). I is used instead of 1 for matrix
+
   
 }
